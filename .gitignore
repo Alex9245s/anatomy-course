@@ -1,0 +1,9 @@
+node_modules/
+.next/
+.tsbuildinfo
+dist/
+release/
+release-status-check/
+data/
+.env.local
+.env.*.local
