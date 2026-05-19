@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -13,6 +13,28 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [safeNextPath, setSafeNextPath] = useState('/dashboard');
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const messageParam = params.get('message');
+    const nextPathParam = params.get('next');
+    const safePath = nextPathParam && nextPathParam.startsWith('/') && !nextPathParam.startsWith('//')
+      ? nextPathParam
+      : '/dashboard';
+
+    setMessage(messageParam);
+    setSafeNextPath(safePath);
+  }, []);
+
+  const infoMessage = message === 'check-email'
+    ? (lang === 'he' ? 'נרשמת בהצלחה. בדוק את האימייל לאישור החשבון ואז התחבר.' : 'Sign-up successful. Check your email to confirm your account, then sign in.')
+    : message === 'auth-error'
+      ? (lang === 'he' ? 'ההתחברות נכשלה. נסה שוב.' : 'Authentication failed. Please try again.')
+      : message === 'auth-missing-code'
+        ? (lang === 'he' ? 'חסר קוד אימות. נסה להתחבר מחדש.' : 'Missing authentication code. Please sign in again.')
+        : '';
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -21,7 +43,7 @@ export default function LoginPage() {
     const supabase = createClient();
     const { error: err } = await supabase.auth.signInWithPassword({ email, password });
     if (err) { setError(err.message); setLoading(false); return; }
-    router.push('/dashboard');
+    router.push(safeNextPath);
     router.refresh();
   }
 
@@ -39,6 +61,7 @@ export default function LoginPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {infoMessage && <p className="text-emerald-700 text-sm bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">{infoMessage}</p>}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{tr('email', lang)}</label>
           <input type="email" required value={email} onChange={e => setEmail(e.target.value)}

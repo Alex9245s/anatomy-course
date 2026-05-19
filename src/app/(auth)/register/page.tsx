@@ -20,12 +20,12 @@ export default function RegisterPage() {
     setLoading(true);
     setError('');
     const supabase = createClient();
-    const { error: err } = await supabase.auth.signUp({
+    const { data, error: err } = await supabase.auth.signUp({
       email, password,
       options: { data: { full_name: fullName } },
     });
     if (err) { setError(err.message); setLoading(false); return; }
-    router.push('/dashboard');
+    router.push(data.session ? '/dashboard' : '/login?message=check-email');
     router.refresh();
   }
 

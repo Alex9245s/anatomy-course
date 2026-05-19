@@ -35,15 +35,22 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
+  const search = request.nextUrl.search;
   const isAuthPage = path.startsWith('/login') || path.startsWith('/register');
-  const isAdminPage = path.startsWith('/admin');
+  const isAuthCallback = path.startsWith('/auth/callback');
 
-  if (!user && !isAuthPage && path !== '/') {
-    return NextResponse.redirect(new URL('/login', request.url));
+  if (!user && !isAuthPage && !isAuthCallback && path !== '/') {
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set('next', `${path}${search}`);
+    return NextResponse.redirect(loginUrl);
   }
 
   if (user && isAuthPage) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    const requestedPath = request.nextUrl.searchParams.get('next');
+    const safePath = requestedPath && requestedPath.startsWith('/') && !requestedPath.startsWith('//')
+      ? requestedPath
+      : '/dashboard';
+    return NextResponse.redirect(new URL(safePath, request.url));
   }
 
   return supabaseResponse;
