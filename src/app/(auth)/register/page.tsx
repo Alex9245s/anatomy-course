@@ -24,7 +24,20 @@ export default function RegisterPage() {
       email, password,
       options: { data: { full_name: fullName } },
     });
-    if (err) { setError(err.message); setLoading(false); return; }
+    if (err) {
+      const dbSignupError = 'Database error saving new user';
+      if (err.message?.includes(dbSignupError)) {
+        setError(
+          lang === 'he'
+            ? 'שגיאת מסד נתונים בהרשמה. צריך לעדכן את הגדרת ה-Trigger ב-Supabase (ראה README/מיגרציה).'
+            : 'Database signup configuration error. Please update the Supabase trigger setup (see README/migration).'
+        );
+      } else {
+        setError(err.message);
+      }
+      setLoading(false);
+      return;
+    }
     router.push(data.session ? '/dashboard' : '/login?message=check-email');
     router.refresh();
   }

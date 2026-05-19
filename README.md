@@ -41,3 +41,27 @@ update profiles set role = 'admin' where id = 'YOUR_USER_ID';
 1. `git init && git add . && git commit -m "init"`
 2. העלה ל-GitHub
 3. חבר ב-[vercel.com](https://vercel.com) + הגדר את משתני הסביבה
+
+## פתרון תקלה בהרשמה (Database error saving new user)
+אם בהרשמה מתקבלת שגיאה זו, הרץ ב-Supabase SQL Editor:
+
+```sql
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+	insert into public.profiles (id, full_name)
+	values (new.id, coalesce(new.raw_user_meta_data->>'full_name', ''));
+	return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+
+create trigger on_auth_user_created
+	after insert on auth.users
+	for each row execute procedure public.handle_new_user();
+```
