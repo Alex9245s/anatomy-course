@@ -141,7 +141,7 @@ function StudentDetail({
   }
 
   async function handleSetPassword() {
-    if (!newPassword) return;
+    if (!newPassword || newPassword.length < 6) return;
     setPwStatus('saving');
     const result = await setStudentPassword(profile.id, newPassword);
     if (result.error) {
@@ -153,6 +153,7 @@ function StudentDetail({
       setTimeout(() => { setShowPasswordForm(false); setPwStatus('idle'); }, 1500);
     }
   }
+
   const completedIds = new Set(progress.map(p => p.lesson_id));
   const totalLessons = lessons.length;
   const completedCount = progress.length;
@@ -164,108 +165,123 @@ function StudentDetail({
 
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="flex items-center gap-4 flex-wrap">
-        <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-xl font-bold">
+
+      {/* ===== TOP: info row ===== */}
+      <div className="flex items-start gap-4 flex-wrap">
+        <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-xl font-bold shrink-0">
           {(profile.full_name || '?')[0].toUpperCase()}
         </div>
-        <div>
+        <div className="flex-1 min-w-0">
           <p className="font-bold text-gray-900 text-lg">{profile.full_name || '—'}</p>
           <p className="text-sm text-gray-500" dir="ltr">{profile.email ?? '—'}</p>
           {profile.username && (
-            <p className="text-xs text-indigo-600 font-mono bg-indigo-50 px-2 py-0.5 rounded mt-0.5 inline-block">
+            <span className="text-xs text-indigo-600 font-mono bg-indigo-50 px-2 py-0.5 rounded mt-0.5 inline-block">
               @{profile.username}
-            </p>
+            </span>
           )}
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-400 mt-0.5">
             {lang === 'he' ? 'הצטרף:' : 'Joined:'}{' '}
             {new Date(profile.created_at).toLocaleDateString(lang === 'he' ? 'he-IL' : 'en-US')}
           </p>
         </div>
-        {/* Progress bar */}
-        <div className="flex-1 min-w-[160px]">
-          <div className="flex justify-between text-xs text-gray-500 mb-1">
-            <span>{lang === 'he' ? 'התקדמות כוללת' : 'Overall Progress'}</span>
-            <span>{completedCount}/{totalLessons} ({pct}%)</span>
-          </div>
-          <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-            <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
-          </div>
-        </div>
-        {/* Final exam badge */}
         {finalScore && (
-          <div className="bg-white border border-blue-200 rounded-lg px-4 py-2 text-center">
+          <div className="bg-white border border-blue-200 rounded-lg px-4 py-2 text-center shrink-0">
             <p className="text-xs text-gray-500">{tr('examScore', lang)}</p>
             <p className="text-2xl font-black text-blue-600">{finalScore.score}<span className="text-sm text-gray-400">/{finalScore.max_score}</span></p>
           </div>
         )}
+      </div>
 
-        {/* Username + Password buttons */}
-        <div className="mr-auto flex flex-col gap-2">
-          {/* Username */}
-          {!showUsernameForm ? (
-            <button
-              onClick={() => setShowUsernameForm(true)}
-              className="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg border border-indigo-200"
-            >
-              👤 {profile.username ? `@${profile.username}` : (lang === 'he' ? 'קבע שם משתמש' : 'Set Username')}
-            </button>
-          ) : (
-            <div className="flex items-center gap-2 bg-white border border-indigo-200 rounded-xl px-3 py-2">
-              <span className="text-gray-400 text-sm font-mono">@</span>
-              <input
-                type="text"
-                value={newUsername}
-                onChange={e => { setNewUsername(e.target.value); setUnStatus('idle'); }}
-                placeholder={lang === 'he' ? 'שם משתמש (אנגלית/עברית)' : 'username'}
-                className="text-sm border-none outline-none w-36 font-mono"
-                dir="ltr"
-              />
-              <button
-                onClick={handleSetUsername}
-                disabled={unStatus === 'saving' || newUsername.trim().length < 2}
-                className="text-xs bg-indigo-600 text-white px-3 py-1 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
-              >
-                {unStatus === 'saving' ? '...' : unStatus === 'ok' ? '✅' : lang === 'he' ? 'שמור' : 'Save'}
-              </button>
-              <button onClick={() => { setShowUsernameForm(false); setNewUsername(profile.username ?? ''); setUnStatus('idle'); }}
-                className="text-gray-400 hover:text-gray-600 text-xs">✕</button>
-              {unStatus === 'error' && <p className="text-red-500 text-xs">{unError}</p>}
-            </div>
-          )}
+      {/* ===== Progress bar ===== */}
+      <div>
+        <div className="flex justify-between text-xs text-gray-500 mb-1">
+          <span>{lang === 'he' ? 'התקדמות כוללת' : 'Overall Progress'}</span>
+          <span>{completedCount}/{totalLessons} ({pct}%)</span>
+        </div>
+        <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+        </div>
+      </div>
 
-          {/* Password */}
-          {!showPasswordForm ? (
+      {/* ===== Action buttons row ===== */}
+      <div className="flex flex-wrap gap-3 border-t border-blue-100 pt-4">
+        {/* --- Username button --- */}
+        {!showUsernameForm ? (
+          <button
+            onClick={() => setShowUsernameForm(true)}
+            className="flex items-center gap-1.5 text-sm bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 py-2 rounded-lg border border-indigo-200 font-medium transition-colors"
+          >
+            👤 {profile.username ? `שנה שם: @${profile.username}` : (lang === 'he' ? 'קבע שם משתמש' : 'Set Username')}
+          </button>
+        ) : (
+          <div className="flex items-center gap-2 bg-white border border-indigo-300 rounded-xl px-3 py-2 shadow-sm">
+            <span className="text-gray-400 font-mono text-sm">@</span>
+            <input
+              type="text"
+              value={newUsername}
+              onChange={e => { setNewUsername(e.target.value); setUnStatus('idle'); setUnError(''); }}
+              placeholder={lang === 'he' ? 'שם משתמש' : 'username'}
+              className="text-sm border-none outline-none w-32 font-mono"
+              dir="ltr"
+              autoFocus
+            />
             <button
-              onClick={() => setShowPasswordForm(true)}
-              className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-lg border border-gray-200"
+              onClick={handleSetUsername}
+              disabled={unStatus === 'saving' || newUsername.trim().length < 2}
+              className="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 disabled:opacity-50 font-medium"
             >
-              🔑 {lang === 'he' ? 'שנה סיסמה' : 'Change Password'}
+              {unStatus === 'saving' ? '...' : unStatus === 'ok' ? '✅ נשמר' : lang === 'he' ? 'שמור' : 'Save'}
             </button>
-          ) : (
-            <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2">
+            <button
+              onClick={() => { setShowUsernameForm(false); setNewUsername(profile.username ?? ''); setUnStatus('idle'); setUnError(''); }}
+              className="text-gray-400 hover:text-gray-600 text-sm"
+            >✕</button>
+            {unStatus === 'error' && <span className="text-red-500 text-xs">{unError}</span>}
+          </div>
+        )}
+
+        {/* --- Password button --- */}
+        {!showPasswordForm ? (
+          <button
+            onClick={() => setShowPasswordForm(true)}
+            className="flex items-center gap-1.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg border border-gray-300 font-medium transition-colors"
+          >
+            🔑 {lang === 'he' ? 'שנה סיסמה' : 'Change Password'}
+          </button>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2 bg-white border border-gray-300 rounded-xl px-3 py-2 shadow-sm">
               <input
                 type="text"
                 value={newPassword}
-                onChange={e => { setNewPassword(e.target.value); setPwStatus('idle'); }}
-                placeholder={lang === 'he' ? 'סיסמה חדשה (6+ תווים)' : 'New password (6+ chars)'}
+                onChange={e => { setNewPassword(e.target.value); setPwStatus('idle'); setPwError(''); }}
+                placeholder={lang === 'he' ? 'סיסמה חדשה' : 'New password'}
                 className="text-sm border-none outline-none w-44"
+                autoFocus
               />
               <button
                 onClick={handleSetPassword}
                 disabled={pwStatus === 'saving' || newPassword.length < 6}
-                className="text-xs bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
               >
-                {pwStatus === 'saving' ? '...' : pwStatus === 'ok' ? '✅' : lang === 'he' ? 'שמור' : 'Save'}
+                {pwStatus === 'saving' ? '...' : pwStatus === 'ok' ? '✅ נשמר' : lang === 'he' ? 'שמור' : 'Save'}
               </button>
-              <button onClick={() => { setShowPasswordForm(false); setNewPassword(''); setPwStatus('idle'); }}
-                className="text-gray-400 hover:text-gray-600 text-xs">✕</button>
-              {pwStatus === 'error' && <p className="text-red-500 text-xs">{pwError}</p>}
+              <button
+                onClick={() => { setShowPasswordForm(false); setNewPassword(''); setPwStatus('idle'); setPwError(''); }}
+                className="text-gray-400 hover:text-gray-600 text-sm"
+              >✕</button>
             </div>
-          )}
-        </div>
+            {newPassword.length > 0 && newPassword.length < 6 && (
+              <p className="text-xs text-orange-500 px-1">
+                {lang === 'he' ? `צריך עוד ${6 - newPassword.length} תווים` : `Need ${6 - newPassword.length} more characters`}
+              </p>
+            )}
+            {pwStatus === 'error' && <p className="text-red-500 text-xs px-1">{pwError}</p>}
+          </div>
+        )}
       </div>
 
+      {/* ===== Stats grid ===== */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* Progress per topic */}
         <div>
@@ -300,7 +316,6 @@ function StudentDetail({
 
         {/* Scores */}
         <div className="space-y-4">
-          {/* Quiz scores */}
           {quizScores.length > 0 && (
             <div>
               <h3 className="font-semibold text-gray-700 mb-2 text-sm">
@@ -311,9 +326,7 @@ function StudentDetail({
                   const lesson = lessons.find(l => l.id === s.reference_id);
                   return (
                     <div key={s.id} className="flex justify-between items-center text-xs bg-white rounded-lg px-3 py-2 border border-gray-100">
-                      <span className="text-gray-600 truncate">
-                        {lesson ? (lang === 'he' ? lesson.title_he : lesson.title_en) : '—'}
-                      </span>
+                      <span className="text-gray-600 truncate">{lesson ? (lang === 'he' ? lesson.title_he : lesson.title_en) : '—'}</span>
                       <ScoreBadge score={s.score} max={s.max_score} />
                     </div>
                   );
@@ -321,8 +334,6 @@ function StudentDetail({
               </div>
             </div>
           )}
-
-          {/* Test scores */}
           {testScores.length > 0 && (
             <div>
               <h3 className="font-semibold text-gray-700 mb-2 text-sm">
@@ -333,9 +344,7 @@ function StudentDetail({
                   const topic = topics.find(t => t.id === s.reference_id);
                   return (
                     <div key={s.id} className="flex justify-between items-center text-xs bg-white rounded-lg px-3 py-2 border border-gray-100">
-                      <span className="text-gray-600 truncate">
-                        {topic ? (lang === 'he' ? topic.title_he : topic.title_en) : '—'}
-                      </span>
+                      <span className="text-gray-600 truncate">{topic ? (lang === 'he' ? topic.title_he : topic.title_en) : '—'}</span>
                       <ScoreBadge score={s.score} max={s.max_score} />
                     </div>
                   );
@@ -343,14 +352,13 @@ function StudentDetail({
               </div>
             </div>
           )}
-
           {scores.length === 0 && (
             <p className="text-xs text-gray-400">{lang === 'he' ? 'אין ציונים עדיין' : 'No scores yet'}</p>
           )}
         </div>
       </div>
 
-      {/* Timeline: last activity */}
+      {/* Timeline */}
       {progress.length > 0 && (
         <div>
           <h3 className="font-semibold text-gray-700 mb-2 text-sm">
