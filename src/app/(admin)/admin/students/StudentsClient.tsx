@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useLang } from '@/contexts/LangContext';
 import { tr } from '@/lib/i18n';
 import { setStudentPassword } from './actions';
+import { startImpersonation } from './impersonation-actions';
 import type { Profile, StudentScore, StudentProgress } from '@/types';
 
 interface Lesson { id: string; title_he: string; title_en: string; topic_id: string; order_index: number; }
@@ -35,6 +36,7 @@ export default function StudentsClient({ profiles, scores, progress, lessons, to
               <th className="text-center px-4 py-3 font-medium text-gray-600">{tr('examScore', lang)}</th>
               <th className="text-right px-4 py-3 font-medium text-gray-600">{tr('joinedAt', lang)}</th>
               <th className="px-4 py-3" />
+              <th className="px-4 py-3" />
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -59,13 +61,25 @@ export default function StudentsClient({ profiles, scores, progress, lessons, to
                     <td className="px-4 py-3 text-gray-400 text-xs">
                       {new Date(p.created_at).toLocaleDateString(lang === 'he' ? 'he-IL' : 'en-US')}
                     </td>
+                    <td className="px-4 py-3 text-xs text-center">
+                      <form action={startImpersonation.bind(null, p.id)}>
+                        <button
+                          type="submit"
+                          title={lang === 'he' ? 'צפה כתלמיד' : 'View as student'}
+                          onClick={e => e.stopPropagation()}
+                          className="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-2 py-1 rounded-lg text-xs font-medium transition-colors"
+                        >
+                          👁️
+                        </button>
+                      </form>
+                    </td>
                     <td className="px-4 py-3 text-gray-400 text-xs text-center">
                       {isOpen ? '▲' : '▼'}
                     </td>
                   </tr>
                   {isOpen && (
                     <tr>
-                      <td colSpan={6} className="bg-blue-50 border-t border-blue-100 px-4 py-5">
+                      <td colSpan={7} className="bg-blue-50 border-t border-blue-100 px-4 py-5">
                         <StudentDetail
                           profile={p}
                           progress={progress.filter(x => x.user_id === p.id)}
@@ -115,7 +129,6 @@ function StudentDetail({
       setTimeout(() => { setShowPasswordForm(false); setPwStatus('idle'); }, 1500);
     }
   }
-
   const completedIds = new Set(progress.map(p => p.lesson_id));
   const totalLessons = lessons.length;
   const completedCount = progress.length;
@@ -158,7 +171,7 @@ function StudentDetail({
           </div>
         )}
 
-        {/* Password reset */}
+        {/* Password reset button */}
         <div className="mr-auto">
           {!showPasswordForm ? (
             <button
@@ -200,22 +213,16 @@ function StudentDetail({
           <div className="space-y-3">
             {topics.map(topic => {
               const topicLessons = lessons.filter(l => l.topic_id === topic.id);
-              const done = topicLessons.filter(l => completedIds.has(l.id)).length;
-              const total = topicLessons.length;
-              const tpct = total > 0 ? Math.round((done / total) * 100) : 0;
+              const topicCompleted = topicLessons.filter(l => completedIds.has(l.id)).length;
+              const topicPct = topicLessons.length > 0 ? Math.round((topicCompleted / topicLessons.length) * 100) : 0;
               return (
                 <div key={topic.id}>
                   <div className="flex justify-between text-xs text-gray-600 mb-1">
-                    <span className="font-medium">{lang === 'he' ? topic.title_he : topic.title_en}</span>
-                    <span className={done === total && total > 0 ? 'text-green-600 font-bold' : 'text-gray-400'}>
-                      {done}/{total}
-                    </span>
+                    <span>{lang === 'he' ? topic.title_he : topic.title_en}</span>
+                    <span>{topicCompleted}/{topicLessons.length}</span>
                   </div>
                   <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all ${done === total && total > 0 ? 'bg-green-500' : 'bg-blue-400'}`}
-                      style={{ width: `${tpct}%` }}
-                    />
+                    <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${topicPct}%` }} />
                   </div>
                 </div>
               );
@@ -224,83 +231,36 @@ function StudentDetail({
         </div>
 
         {/* Scores */}
-        <div className="space-y-4">
-          {quizScores.length > 0 && (
-            <div>
-              <h3 className="font-semibold text-gray-700 mb-2 text-sm">
-                {lang === 'he' ? 'ציוני חידונים' : 'Quiz Scores'}
-              </h3>
-              <div className="space-y-1">
-                {quizScores.map(s => {
-                  const lesson = lessons.find(l => l.id === s.reference_id);
-                  return (
-                    <div key={s.id} className="flex justify-between items-center text-xs bg-white rounded-lg px-3 py-2 border border-gray-100">
-                      <span className="text-gray-600 truncate">
-                        {lesson ? (lang === 'he' ? lesson.title_he : lesson.title_en) : '—'}
-                      </span>
-                      <ScoreBadge score={s.score} max={s.max_score} />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {testScores.length > 0 && (
-            <div>
-              <h3 className="font-semibold text-gray-700 mb-2 text-sm">
-                {lang === 'he' ? 'ציוני בחנים' : 'Test Scores'}
-              </h3>
-              <div className="space-y-1">
-                {testScores.map(s => {
-                  const topic = topics.find(t => t.id === s.reference_id);
-                  return (
-                    <div key={s.id} className="flex justify-between items-center text-xs bg-white rounded-lg px-3 py-2 border border-gray-100">
-                      <span className="text-gray-600 truncate">
-                        {topic ? (lang === 'he' ? topic.title_he : topic.title_en) : '—'}
-                      </span>
-                      <ScoreBadge score={s.score} max={s.max_score} />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {scores.length === 0 && (
+        <div>
+          <h3 className="font-semibold text-gray-700 mb-3 text-sm">
+            {lang === 'he' ? 'ציונים' : 'Scores'}
+          </h3>
+          {scores.length === 0 ? (
             <p className="text-xs text-gray-400">{lang === 'he' ? 'אין ציונים עדיין' : 'No scores yet'}</p>
+          ) : (
+            <div className="space-y-1.5">
+              {quizScores.map((s, i) => (
+                <div key={i} className="flex justify-between text-xs bg-white rounded-lg px-3 py-2 border border-gray-100">
+                  <span className="text-gray-600">📝 {lang === 'he' ? 'בחינת סיום' : 'Quiz'}</span>
+                  <span className="font-bold text-indigo-600">{s.score}/{s.max_score}</span>
+                </div>
+              ))}
+              {testScores.map((s, i) => (
+                <div key={i} className="flex justify-between text-xs bg-white rounded-lg px-3 py-2 border border-gray-100">
+                  <span className="text-gray-600">📚 {lang === 'he' ? 'מבחן' : 'Test'}</span>
+                  <span className="font-bold text-blue-600">{s.score}/{s.max_score}</span>
+                </div>
+              ))}
+              {finalScore && (
+                <div className="flex justify-between text-xs bg-white rounded-lg px-3 py-2 border border-yellow-200 bg-yellow-50">
+                  <span className="text-gray-700 font-medium">🏆 {lang === 'he' ? 'מבחן סיום' : 'Final Exam'}</span>
+                  <span className="font-black text-yellow-700">{finalScore.score}/{finalScore.max_score}</span>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
-
-      {progress.length > 0 && (
-        <div>
-          <h3 className="font-semibold text-gray-700 mb-2 text-sm">
-            {lang === 'he' ? 'פעילות אחרונה' : 'Recent Activity'}
-          </h3>
-          <div className="space-y-1 max-h-40 overflow-y-auto">
-            {[...progress].reverse().slice(0, 10).map(p => {
-              const lesson = lessons.find(l => l.id === p.lesson_id);
-              return (
-                <div key={p.id} className="flex justify-between items-center text-xs bg-white rounded-lg px-3 py-2 border border-gray-100">
-                  <span className="text-green-600">✓ {lesson ? (lang === 'he' ? lesson.title_he : lesson.title_en) : p.lesson_id}</span>
-                  <span className="text-gray-400 shrink-0 mr-2">
-                    {new Date(p.completed_at).toLocaleDateString(lang === 'he' ? 'he-IL' : 'en-US')}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </div>
-  );
-}
-
-function ScoreBadge({ score, max }: { score: number; max: number }) {
-  const pct = max > 0 ? (score / max) * 100 : 0;
-  const color = pct >= 80 ? 'text-green-600 bg-green-50' : pct >= 60 ? 'text-yellow-600 bg-yellow-50' : 'text-red-600 bg-red-50';
-  return (
-    <span className={`font-bold px-2 py-0.5 rounded-full ${color}`}>{score}/{max}</span>
   );
 }
