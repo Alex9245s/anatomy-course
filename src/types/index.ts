@@ -104,9 +104,10 @@ export interface StudentScore {
 export interface MiniGame {
   id: string;
   lesson_id: string;
-  type: 'memory' | 'scramble';
+  type: 'memory' | 'scramble' | 'match' | 'fill-blank' | 'spelling' | 'sort';
   title_he: string | null;
   title_en: string | null;
-  data: { word: string; emoji: string; translation: string }[];
+  // data shape varies by type — cast in component
+  data: Record<string, unknown>[];
   order_index: number;
 }
