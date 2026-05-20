@@ -19,7 +19,6 @@ export default function StudentNav({ userId, userEmail }: { userId: string; user
 
   const links = [
     { href: '/dashboard', label: tr('dashboard', lang) },
-    { href: '/course',    label: tr('myCourse', lang) },
     { href: '/scores',    label: tr('myScores', lang) },
   ];
 
@@ -41,6 +40,12 @@ export default function StudentNav({ userId, userEmail }: { userId: string; user
             {lang === 'he' ? 'EN' : 'HE'}
           </button>
           <span className="text-xs text-gray-400 hidden sm:block">{userEmail}</span>
+          {userEmail?.toLowerCase() === 'dribbens91@gmail.com' && (
+            <Link href="/admin"
+              className="text-xs bg-purple-600 text-white px-3 py-1.5 rounded-lg hover:bg-purple-700 font-medium">
+              🛡️ Admin
+            </Link>
+          )}
           <button onClick={logout} className="text-sm text-red-500 hover:text-red-700">{tr('logout', lang)}</button>
         </div>
       </div>
