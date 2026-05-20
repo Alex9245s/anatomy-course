@@ -25,6 +25,11 @@ export default function DashboardClient({ userName, courses, completedLessonIds 
   const { lang } = useLang();
   const completedSet = new Set(completedLessonIds);
 
+  // Only show courses that have at least one lesson
+  const activeCourses = courses.filter(
+    course => (course.topics ?? []).flatMap(t => t.lessons ?? []).length > 0
+  );
+
   return (
     <div className="space-y-8">
       <div>
@@ -32,12 +37,12 @@ export default function DashboardClient({ userName, courses, completedLessonIds 
         <p className="text-gray-500 mt-1">{tr('courseHub', lang)}</p>
       </div>
 
-      {courses.length === 0 && (
+      {activeCourses.length === 0 && (
         <p className="text-gray-400">{tr('noCourses', lang)}</p>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {courses.map(course => {
+        {activeCourses.map(course => {
           const allLessons = (course.topics ?? []).flatMap(t => t.lessons ?? []);
           const total = allLessons.length;
           const done = allLessons.filter(l => l && completedSet.has(l.id)).length;
