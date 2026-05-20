@@ -16,6 +16,7 @@ export interface Profile {
   id: string;
   full_name: string;
   email: string | null;
+  username: string | null;
   role: 'student' | 'admin';
   created_at: string;
 }

@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useLang } from '@/contexts/LangContext';
 import { tr } from '@/lib/i18n';
+import { lookupEmailByUsername } from '@/app/(admin)/admin/students/actions';
 
 export default function LoginPage() {
   const { lang, setLang } = useLang();
   const router = useRouter();
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -23,7 +24,6 @@ export default function LoginPage() {
     const safePath = nextPathParam && nextPathParam.startsWith('/') && !nextPathParam.startsWith('//')
       ? nextPathParam
       : '/dashboard';
-
     setMessage(messageParam);
     setSafeNextPath(safePath);
   }, []);
@@ -40,12 +40,28 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError('');
+
+    let email = identifier.trim();
+
+    // If no @ → treat as username, look up email
+    if (!email.includes('@')) {
+      const result = await lookupEmailByUsername(email);
+      if (result.error || !result.email) {
+        setError(lang === 'he' ? 'שם משתמש לא נמצא' : 'Username not found');
+        setLoading(false);
+        return;
+      }
+      email = result.email;
+    }
+
     const supabase = createClient();
     const { error: err } = await supabase.auth.signInWithPassword({ email, password });
     if (err) { setError(err.message); setLoading(false); return; }
     router.push(safeNextPath);
     router.refresh();
   }
+
+  const isUsername = !identifier.includes('@') && identifier.length > 0;
 
   return (
     <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
@@ -63,16 +79,32 @@ export default function LoginPage() {
       <form onSubmit={handleSubmit} className="space-y-4">
         {infoMessage && <p className="text-emerald-700 text-sm bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">{infoMessage}</p>}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">{tr('email', lang)}</label>
-          <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            dir="ltr" />
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {lang === 'he' ? 'אימייל או שם משתמש' : 'Email or Username'}
+          </label>
+          <div className="relative">
+            <input
+              type="text"
+              required
+              value={identifier}
+              onChange={e => setIdentifier(e.target.value)}
+              placeholder={lang === 'he' ? 'אימייל או שם משתמש' : 'email or username'}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
+              dir="ltr"
+              autoComplete="username"
+            />
+            {isUsername && (
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full">
+                {lang === 'he' ? 'שם משתמש' : 'username'}
+              </span>
+            )}
+          </div>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{tr('password', lang)}</label>
           <input type="password" required value={password} onChange={e => setPassword(e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            dir="ltr" />
+            dir="ltr" autoComplete="current-password" />
         </div>
         {error && <p className="text-red-600 text-sm">{error}</p>}
         <button type="submit" disabled={loading}
