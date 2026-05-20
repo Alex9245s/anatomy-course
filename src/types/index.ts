@@ -1,14 +1,28 @@
 export type Lang = 'he' | 'en';
 
+export interface Course {
+  id: string;
+  title_he: string;
+  title_en: string;
+  description_he: string | null;
+  description_en: string | null;
+  icon: string;
+  color: string;
+  order_index: number;
+  created_at: string;
+}
+
 export interface Profile {
   id: string;
   full_name: string;
+  email: string | null;
   role: 'student' | 'admin';
   created_at: string;
 }
 
 export interface Topic {
   id: string;
+  course_id: string | null;
   title_he: string;
   title_en: string;
   description_he: string | null;
@@ -61,6 +75,21 @@ export interface StudentProgress {
   completed_at: string;
 }
 
+export interface LessonExercise {
+  id: string;
+  lesson_id: string;
+  order_index: number;
+  section_label_he: string | null;
+  section_label_en: string | null;
+  question_he: string;
+  question_en: string;
+  hint_he: string | null;
+  hint_en: string | null;
+  answer: string;
+  explanation_he: string | null;
+  explanation_en: string | null;
+}
+
 export interface StudentScore {
   id: string;
   user_id: string;
@@ -69,4 +98,14 @@ export interface StudentScore {
   score: number;
   max_score: number;
   completed_at: string;
+}
+
+export interface MiniGame {
+  id: string;
+  lesson_id: string;
+  type: 'memory' | 'scramble';
+  title_he: string | null;
+  title_en: string | null;
+  data: { word: string; emoji: string; translation: string }[];
+  order_index: number;
 }
